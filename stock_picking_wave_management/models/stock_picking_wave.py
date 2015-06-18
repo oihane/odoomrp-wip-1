@@ -53,10 +53,8 @@ class StockPickingWave(models.Model):
         return picking_obj.do_enter_transfer_details(
             cr, uid, pickings.ids, context=c)
 
-    @api.multi
-    @api.onchange('partner')
-    def onchange_partner(self):
-        self.ensure_one()
+    @api.one
+    def _get_pickings_domain(self):
         cond = [('wave_id', '=', False),
                 ('state', 'not in', ('done', 'cancel'))]
         if self.partner.child_ids:
@@ -67,4 +65,11 @@ class StockPickingWave(models.Model):
         elif self.partner:
             cond.extend([('wave_id', '=', False),
                          ('partner_id', '=', self.partner.id)])
+        return cond
+
+    @api.multi
+    @api.onchange('partner')
+    def onchange_partner(self):
+        self.ensure_one()
+        cond = self._get_pickings_domain()
         return {'domain': {'picking_ids': cond}}
