@@ -60,19 +60,27 @@ class StockPicking(models.Model):
                     val += cur.round(taxes['total_included'])
                     for tax in taxes['taxes']:
                         val2 += tax.get('amount', 0.0)
-                elif line.purchase_line_id:
-                    purchase_line = line.purchase_line_id
-                    cur = purchase_line.order_id.pricelist_id.currency_id
-                    price = purchase_line.price_unit * (
-                        1 - (purchase_line.discount or 0.0) / 100.0)
-                    taxes = purchase_line.taxes_id.compute_all(
-                        price, line.product_qty,
-                        purchase_line.order_id.partner_id.id,
-                        line.product_id, purchase_line.order_id.partner_id)
-                    val1 += cur.round(taxes['total'])
-                    val += cur.round(taxes['total_included'])
-                    for tax in taxes['taxes']:
-                        val2 += tax.get('amount', 0.0)
+                try:
+                    # If purchase is installed
+                    if line.purchase_line_id:
+                        purchase_line = line.purchase_line_id
+                        cur = purchase_line.order_id.pricelist_id.currency_id
+                        try:
+                            # If purchase_discount is installed
+                            price = purchase_line.price_unit * (
+                                1 - (purchase_line.discount or 0.0) / 100.0)
+                        except:
+                            price = purchase_line.price_unit
+                        taxes = purchase_line.taxes_id.compute_all(
+                            price, line.product_qty,
+                            purchase_line.order_id.partner_id.id,
+                            line.product_id, purchase_line.order_id.partner_id)
+                        val1 += cur.round(taxes['total'])
+                        val += cur.round(taxes['total_included'])
+                        for tax in taxes['taxes']:
+                            val2 += tax.get('amount', 0.0)
+                except:
+                    pass
             picking.amount_untaxed = val1
             picking.amount_tax = val2
             picking.amount_total = val
